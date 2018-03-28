@@ -1,4 +1,5 @@
 from abc import ABC
+import math
 from tf_idf import tf, idf
 
 class Keyword:
@@ -31,11 +32,15 @@ class Document(WeightableObject):
         Document.document_count += 1
 
 class Query(WeightableObject):
-    def __init__(self, name):
-        super().__init__(name)
+    def __init__(self):
+        super().__init__('Query')
         self.deg = {}
 
+# TF smoothing (default = 0.5, no smoothing = 0)
 TF_K = 0.5
+
+# IDF smoothing
+IDF_SMOOTH = True
 
 def sum_pow(document):
     result = 0;
@@ -66,7 +71,7 @@ while (True):
 
 # find idf
 for keyword in keywords:
-    keyword.idf = idf(Keyword.keyword_count, keyword.count)
+    keyword.idf = idf(Keyword.keyword_count, keyword.count, IDF_SMOOTH)
 
 for document in documents:
     # find maximum frequencies in documents
@@ -77,22 +82,13 @@ for document in documents:
         document.tf[keyword] = tf(freq, max_freq, TF_K)
         document.weight[keyword] = document.tf[keyword] * keyword.idf
 
-queries = []
 while (True):
-    query = Query(input("Query name/number: "))
+    query = Query()
 
     # ask for each keyword count in query
     for keyword in keywords:
         query.keywords[keyword] = int(input("[" + query.name + "] Keyword '" + keyword.name + "' count: "))
 
-    # add query to list
-        queries.append(query)
-
-    prompt = input('Do you want to add more documents? (y/n): ')
-    if (prompt not in ['', 'y', 'yes']):
-        break
-
-for query in queries:
     max_freq = query.keywords[max(query.keywords, key=query.keywords.get)]
 
     # find tf & weight
@@ -100,15 +96,21 @@ for query in queries:
         query.tf[keyword] = tf(freq, max_freq, TF_K)
         query.weight[keyword] = query.tf[keyword] * keyword.idf
 
+    print()
+
     # find degree of similarity
     for document in documents:
         query.deg[document] = 0;
         for keyword, weight in document.weight.items():
             query.deg[document] += weight * query.weight[keyword]
-        query.deg[document] /= (sum_pow(query) * sum_pow(document))
+        query.deg[document] /= math.sqrt(sum_pow(query) * sum_pow(document))
 
-for document in documents:
-    print(vars(document))
+        print("sim(Q, " + document.name + ") = " + query.deg[document])
 
-for query in queries:
-    print(vars(query))
+    print()
+    print("RANK: ", sorted(query.deg, key=query.deg.get, reverse=True))
+    print()
+
+    prompt = input('Do you want to add more queries? (y/n): ')
+    if (prompt not in ['', 'y', 'yes']):
+        break

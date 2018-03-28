@@ -3,8 +3,8 @@ import math
 def tf(freq, max, k=0.5):
     return k + (k * freq / max)
 
-def idf(n, freq):
-    return math.log10(1 + (n / freq))
+def idf(n, freq, smooth=True):
+    return math.log10((1 if smooth else 0) + (n / freq))
 
 if __name__ == '__main__':
     docN = int(input('[IDF] docN: '))
